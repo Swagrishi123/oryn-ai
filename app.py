@@ -54,10 +54,10 @@ st.markdown("""
         border: 1px solid #e9d5ff !important;
     }
     div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarUser"]) * {
-        color: #6b21a8 !important; /* Rich violet purple */
+        color: #6b21a8 !important; /* Rich violet */
     }
 
-    /* AI Assistant Message Bubble */
+    /* AI Assistant Message Bubble & Text */
     div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarAssistant"]) {
         background-color: #faf5ff !important; /* Ultra-light lilac card */
         border-radius: 18px !important;
@@ -68,7 +68,7 @@ st.markdown("""
     [data-testid="stMarkdownContainer"] p,
     [data-testid="stMarkdownContainer"] span,
     [data-testid="stMarkdownContainer"] li {
-        color: #4a148c !important; /* Deep contrast purple - fully visible on mobile */
+        color: #4a148c !important; /* High-contrast purple */
         font-weight: 500;
     }
 
@@ -82,11 +82,12 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
+
 # --- Header with Rosette Swirl Emblem ---
 st.markdown("""
 <div class="oryn-header">
     <div class="oryn-brand">
-        <svg width="30" height="30" viewBox="0 0 24 24" fill="#0d0d0d" xmlns="http://www.w3.org/2000/svg">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="#4a148c" xmlns="http://www.w3.org/2000/svg">
             <path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.771-4.2057 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7467-7.0731zM13.2599 22.4042a4.4568 4.4568 0 0 1-2.9001-1.0543l.1422-.0818 4.811-2.778a.791.791 0 0 0 .3955-.6855v-6.786l2.1643 1.25a.1582.1582 0 0 1 .0791.137v5.545a4.4628 4.4628 0 0 1-4.692 4.4536zM3.8205 18.0645a4.4568 4.4568 0 0 1-.5157-3.0568l.1422.0853 4.811 2.778a.791.791 0 0 0 .791 0l5.8753-3.3934v2.5a.1582.1582 0 0 1-.0791.137l-4.8 2.7717a4.4628 4.4628 0 0 1-6.2247-1.8218zm-1.8218-9.4264a4.4568 4.4568 0 0 1 2.3844-2.0025v5.7176a.791.791 0 0 0 .3955.6855l5.8753 3.3934-2.1643 1.25a.1582.1582 0 0 1-.1582 0l-4.8-2.7717a4.4628 4.4628 0 0 1-1.5327-6.2723zm13.931-1.0543-5.8753-3.3934 2.1643-1.25a.1582.1582 0 0 1 .1582 0l4.8 2.7717a4.4628 4.4628 0 0 1-.5157 8.5292v-5.972a.791.791 0 0 0-.7315-.6855zm3.8205 6.3686a4.4568 4.4568 0 0 1 .5157 3.0568l-.1422-.0853-4.811-2.778a.791.791 0 0 0-.791 0l-5.8753 3.3934v-2.5a.1582.1582 0 0 1 .0791-.137l4.8-2.7717a4.4628 4.4628 0 0 1 6.2247 1.8218zM10.7401 13.0847l-2.6105-1.507 2.6105-1.507 2.6105 1.507z"/>
         </svg>
         <h1 class="oryn-title">ORYN.AI</h1>
@@ -95,7 +96,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# --- API Key Setup & Model Discovery ---
+# --- API Key Setup & Dynamic Model Discovery ---
 raw_key = st.secrets.get("GROQ_API_KEY", None)
 if not raw_key:
     with st.sidebar:
@@ -106,7 +107,6 @@ if not raw_key:
 api_key = str(raw_key).strip() if raw_key else None
 client = Groq(api_key=api_key) if api_key else None
 
-# Automatically find an active model on this account
 active_model = "llama-3.1-8b-instant"
 if client:
     try:
