@@ -11,13 +11,11 @@ st.set_page_config(page_title="ORYN.AI", page_icon="✦", layout="centered")
 # --- Custom Gemini Light UI Styling ---
 st.markdown("""
 <style>
-    /* Clean white background & typography */
     .stApp {
         background-color: #ffffff;
         color: #1f1f1f;
         font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     }
-    /* Fixed sticky top header */
     .oryn-header {
         position: sticky;
         top: 0;
@@ -45,7 +43,6 @@ st.markdown("""
         font-size: 0.85rem;
         margin: 2px 0 0 0;
     }
-    /* Chat message pill styling */
     div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarUser"]) {
         background-color: #f0f4f9;
         border-radius: 20px;
@@ -73,15 +70,42 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# --- API Key Setup ---
-api_key = st.secrets.get("GROQ_API_KEY", None)
-if not api_key:
+# --- API Key Setup & Model Discovery ---
+raw_key = st.secrets.get("GROQ_API_KEY", None)
+if not raw_key:
     with st.sidebar:
         st.subheader("Configuration")
-        api_key = st.text_input("Enter Groq API Key:", type="password")
+        raw_key = st.text_input("Enter Groq API Key:", type="password")
         st.caption("Free key available at console.groq.com")
 
+api_key = str(raw_key).strip() if raw_key else None
 client = Groq(api_key=api_key) if api_key else None
+
+# Automatically find an active model on this account
+active_model = "llama-3.1-8b-instant"
+if client:
+    try:
+        available_models = [m.id for m in client.models.list().data]
+        priority_models = [
+            "llama-3.1-8b-instant",
+            "llama-3.3-70b-versatile",
+            "llama-3.2-3b-preview",
+            "llama-3.2-1b-preview",
+            "mixtral-8x7b-32768",
+            "gemma2-9b-it"
+        ]
+        for candidate in priority_models:
+            if candidate in available_models:
+                active_model = candidate
+                break
+        else:
+            if available_models:
+                active_model = available_models[0]
+    except Exception as err:
+        st.sidebar.warning(f"Could not verify models list: {err}")
+
+with st.sidebar:
+    st.caption(f"⚡ Active Engine: `{active_model}`")
 
 # --- Helper Utilities ---
 def execute_pure_math(expr: str) -> str:
@@ -155,30 +179,39 @@ if user_input:
     t_lower = user_input.lower()
 
     if not client:
-        response = "Please enter a free Groq API key in the sidebar to activate ORYN.AI."
+        response = "Please enter a valid Groq API key to activate ORYN.AI."
     elif pdf_text:
         prompt = f"Document Excerpt:\n{pdf_text}\n\nQuestion: {user_input}\nAnswer clearly based on the document."
-        res = client.chat.completions.create(model="llama-3.1-8b-instant", messages=[{"role": "user", "content": prompt}], max_tokens=350)
-        response = res.choices[0].message.content
+        try:
+            res = client.chat.completions.create(model=active_model, messages=[{"role": "user", "content": prompt}], max_tokens=350)
+            response = res.choices[0].message.content
+        except Exception as err:
+            response = f"Groq Error: {err}"
     elif is_pure_math(user_input):
         response = f"`{user_input} = {execute_pure_math(user_input)}`"
     elif any(sig in t_lower for sig in ["speed", "distance", "ratio", "compounded", "compound interest", "profit", "loss", "discount", "upstream", "downstream", "work in"]):
         code_prompt = f"Write ONLY a Python script inside ```python ... ``` that prints a step-by-step solution and final answer for: {user_input}"
-        code_res = client.chat.completions.create(model="llama-3.1-8b-instant", messages=[{"role": "user", "content": code_prompt}], max_tokens=450)
-        raw_code = code_res.choices[0].message.content
-        match = re.search(r"```(?:python)?\s*(.*?)\s*```", raw_code, re.DOTALL)
-        if match:
-            exec_out = execute_code_solution(match.group(1))
-            response = exec_out if exec_out and not exec_out.startswith("EXEC_ERROR:") else raw_code
-        else:
-            response = raw_code
+        try:
+            code_res = client.chat.completions.create(model=active_model, messages=[{"role": "user", "content": code_prompt}], max_tokens=450)
+            raw_code = code_res.choices[0].message.content
+            match = re.search(r"```(?:python)?\s*(.*?)\s*```", raw_code, re.DOTALL)
+            if match:
+                exec_out = execute_code_solution(match.group(1))
+                response = exec_out if exec_out and not exec_out.startswith("EXEC_ERROR:") else raw_code
+            else:
+                response = raw_code
+        except Exception as err:
+            response = f"Groq Error: {err}"
     else:
         wiki_ctx = fetch_wiki(user_input)
         sys_msg = "You are ORYN.AI. Answer naturally in 2-3 sentences."
         user_msg = f"Context: {wiki_ctx}\n\nQuestion: {user_input}" if wiki_ctx else user_input
         conv = [{"role": "system", "content": sys_msg}] + st.session_state.messages[-4:] + [{"role": "user", "content": user_msg}]
-        res = client.chat.completions.create(model="llama-3.1-8b-instant", messages=conv, max_tokens=300)
-        response = res.choices[0].message.content
+        try:
+            res = client.chat.completions.create(model=active_model, messages=conv, max_tokens=300)
+            response = res.choices[0].message.content
+        except Exception as err:
+            response = f"Groq Error: {err}"
 
     with st.chat_message("assistant"):
         st.markdown(response)
