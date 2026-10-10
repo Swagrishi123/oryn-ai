@@ -9,21 +9,31 @@ from sympy import symbols, Symbol, Eq, solve, simplify, Rational
 st.set_page_config(page_title="ORYN.AI", page_icon="✦", layout="centered")
 
 # --- Custom Gemini Light UI Styling ---
+# --- Custom Gemini Light UI Styling (Mobile Dark-Mode Safe) ---
 st.markdown("""
 <style>
+    /* Force pure white app canvas */
     .stApp {
-        background-color: #ffffff;
-        color: #1f1f1f;
+        background-color: #ffffff !important;
         font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     }
+
+    /* Force all text elements to dark charcoal across mobile & desktop */
+    .stApp, .stApp p, .stApp span, .stApp div, .stApp li,
+    div[data-testid="stChatMessageContent"],
+    div[data-testid="stChatMessageContent"] * {
+        color: #1f1f1f !important;
+    }
+
+    /* Fixed sticky top header */
     .oryn-header {
         position: sticky;
         top: 0;
         z-index: 999;
-        background: rgba(255, 255, 255, 0.95);
+        background: rgba(255, 255, 255, 0.98);
         backdrop-filter: blur(10px);
         padding: 12px 0 8px 0;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
         text-align: center;
         margin-bottom: 20px;
     }
@@ -35,28 +45,46 @@ st.markdown("""
     .oryn-title {
         font-size: 2rem;
         font-weight: 700;
-        color: #0d0d0d;
+        color: #0d0d0d !important;
         margin: 0;
     }
     .oryn-subtitle {
-        color: #5f6368;
+        color: #5f6368 !important;
         font-size: 0.85rem;
         margin: 2px 0 0 0;
     }
+
+    /* User Chat Bubble (Soft Blue) */
     div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarUser"]) {
-        background-color: #f0f4f9;
-        border-radius: 20px;
-        padding: 8px 16px;
-        border: none;
+        background-color: #e8f0fe !important;
+        border-radius: 18px !important;
+        padding: 10px 16px !important;
+        border: 1px solid #d2e3fc !important;
     }
+    div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarUser"]) * {
+        color: #174ea6 !important;
+    }
+
+    /* AI Assistant Bubble (Subtle Card Outline) */
     div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarAssistant"]) {
-        background-color: transparent;
-        border: none;
-        padding: 8px 4px;
+        background-color: #f8f9fa !important;
+        border-radius: 18px !important;
+        padding: 12px 18px !important;
+        border: 1px solid #e8eaed !important;
+    }
+    div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarAssistant"]) * {
+        color: #202124 !important;
+    }
+
+    /* Inline Math & Code Chips */
+    code {
+        background-color: #eef2f6 !important;
+        color: #c7254e !important;
+        padding: 2px 6px !important;
+        border-radius: 4px !important;
     }
 </style>
 """, unsafe_allow_html=True)
-
 # --- Header with Rosette Swirl Emblem ---
 st.markdown("""
 <div class="oryn-header">
