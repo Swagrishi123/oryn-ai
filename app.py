@@ -158,13 +158,13 @@ if user_input:
         response = "Please enter a free Groq API key in the sidebar to activate ORYN.AI."
     elif pdf_text:
         prompt = f"Document Excerpt:\n{pdf_text}\n\nQuestion: {user_input}\nAnswer clearly based on the document."
-        res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role": "user", "content": prompt}], max_tokens=350)
+        res = client.chat.completions.create(model="llama-3.1-8b-instant", messages=[{"role": "user", "content": prompt}], max_tokens=350)
         response = res.choices[0].message.content
     elif is_pure_math(user_input):
         response = f"`{user_input} = {execute_pure_math(user_input)}`"
     elif any(sig in t_lower for sig in ["speed", "distance", "ratio", "compounded", "compound interest", "profit", "loss", "discount", "upstream", "downstream", "work in"]):
         code_prompt = f"Write ONLY a Python script inside ```python ... ``` that prints a step-by-step solution and final answer for: {user_input}"
-        code_res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role": "user", "content": code_prompt}], max_tokens=450)
+        code_res = client.chat.completions.create(model="llama-3.1-8b-instant", messages=[{"role": "user", "content": code_prompt}], max_tokens=450)
         raw_code = code_res.choices[0].message.content
         match = re.search(r"```(?:python)?\s*(.*?)\s*```", raw_code, re.DOTALL)
         if match:
@@ -177,7 +177,7 @@ if user_input:
         sys_msg = "You are ORYN.AI. Answer naturally in 2-3 sentences."
         user_msg = f"Context: {wiki_ctx}\n\nQuestion: {user_input}" if wiki_ctx else user_input
         conv = [{"role": "system", "content": sys_msg}] + st.session_state.messages[-4:] + [{"role": "user", "content": user_msg}]
-        res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=conv, max_tokens=300)
+        res = client.chat.completions.create(model="llama-3.1-8b-instant", messages=conv, max_tokens=300)
         response = res.choices[0].message.content
 
     with st.chat_message("assistant"):
