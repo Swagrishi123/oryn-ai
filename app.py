@@ -8,24 +8,16 @@ from sympy import symbols, Symbol, Eq, solve, simplify, Rational
 # --- Page Configuration ---
 st.set_page_config(page_title="ORYN.AI", page_icon="✦", layout="centered")
 
-# --- Custom Gemini Light UI Styling ---
-# --- Custom Gemini Light UI Styling (Mobile Dark-Mode Safe) ---
+# --- Custom Gemini Light UI Styling (Purple Text Edition) ---
 st.markdown("""
 <style>
-    /* Force pure white app canvas */
+    /* Force white background */
     .stApp {
         background-color: #ffffff !important;
         font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
-    /* Force all text elements to dark charcoal across mobile & desktop */
-    .stApp, .stApp p, .stApp span, .stApp div, .stApp li,
-    div[data-testid="stChatMessageContent"],
-    div[data-testid="stChatMessageContent"] * {
-        color: #1f1f1f !important;
-    }
-
-    /* Fixed sticky top header */
+    /* Fixed top header */
     .oryn-header {
         position: sticky;
         top: 0;
@@ -45,41 +37,46 @@ st.markdown("""
     .oryn-title {
         font-size: 2rem;
         font-weight: 700;
-        color: #0d0d0d !important;
+        color: #4a148c !important; /* Deep Royal Purple */
         margin: 0;
     }
     .oryn-subtitle {
-        color: #5f6368 !important;
+        color: #7b1fa2 !important;
         font-size: 0.85rem;
         margin: 2px 0 0 0;
     }
 
-    /* User Chat Bubble (Soft Blue) */
+    /* User Message Bubble */
     div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarUser"]) {
-        background-color: #e8f0fe !important;
+        background-color: #f3e8ff !important; /* Soft lavender */
         border-radius: 18px !important;
         padding: 10px 16px !important;
-        border: 1px solid #d2e3fc !important;
+        border: 1px solid #e9d5ff !important;
     }
     div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarUser"]) * {
-        color: #174ea6 !important;
+        color: #6b21a8 !important; /* Rich violet purple */
     }
 
-    /* AI Assistant Bubble (Subtle Card Outline) */
+    /* AI Assistant Message Bubble */
     div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarAssistant"]) {
-        background-color: #f8f9fa !important;
+        background-color: #faf5ff !important; /* Ultra-light lilac card */
         border-radius: 18px !important;
         padding: 12px 18px !important;
-        border: 1px solid #e8eaed !important;
+        border: 1px solid #f3e8ff !important;
     }
-    div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarAssistant"]) * {
-        color: #202124 !important;
+    div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarAssistant"]) *,
+    [data-testid="stMarkdownContainer"] p,
+    [data-testid="stMarkdownContainer"] span,
+    [data-testid="stMarkdownContainer"] li {
+        color: #4a148c !important; /* Deep contrast purple - fully visible on mobile */
+        font-weight: 500;
     }
 
-    /* Inline Math & Code Chips */
+    /* Math, Formulas & Inline Code */
     code {
-        background-color: #eef2f6 !important;
-        color: #c7254e !important;
+        background-color: #ede9fe !important;
+        color: #581c87 !important;
+        font-weight: 600 !important;
         padding: 2px 6px !important;
         border-radius: 4px !important;
     }
