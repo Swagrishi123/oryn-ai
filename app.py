@@ -37,7 +37,7 @@ st.markdown("""
     .oryn-title {
         font-size: 2rem;
         font-weight: 700;
-        color: #4a148c !important; /* Deep Royal Purple */
+        color: #4a148c !important;
         margin: 0;
     }
     .oryn-subtitle {
@@ -48,27 +48,26 @@ st.markdown("""
 
     /* User Message Bubble */
     div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarUser"]) {
-        background-color: #f3e8ff !important; /* Soft lavender */
+        background-color: #f3e8ff !important;
         border-radius: 18px !important;
         padding: 10px 16px !important;
         border: 1px solid #e9d5ff !important;
     }
     div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarUser"]) * {
-        color: #6b21a8 !important; /* Rich violet */
+        color: #6b21a8 !important;
     }
 
     /* AI Assistant Message Bubble & Text */
     div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarAssistant"]) {
-        background-color: #faf5ff !important; /* Ultra-light lilac card */
+        background-color: #faf5ff !important;
         border-radius: 18px !important;
         padding: 12px 18px !important;
         border: 1px solid #f3e8ff !important;
     }
     div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarAssistant"]) *,
-    [data-testid="stMarkdownContainer"] p,
-    [data-testid="stMarkdownContainer"] span,
-    [data-testid="stMarkdownContainer"] li {
-        color: #4a148c !important; /* High-contrast purple */
+    div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarAssistant"]) p,
+    div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarAssistant"]) span {
+        color: #4a148c !important;
         font-weight: 500;
     }
 
@@ -96,7 +95,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# --- API Key Setup & Dynamic Model Discovery ---
+# --- API Key Setup & Model Discovery ---
 raw_key = st.secrets.get("GROQ_API_KEY", None)
 if not raw_key:
     with st.sidebar:
@@ -112,8 +111,8 @@ if client:
     try:
         available_models = [m.id for m in client.models.list().data]
         priority_models = [
-            "llama-3.1-8b-instant",
             "llama-3.3-70b-versatile",
+            "llama-3.1-8b-instant",
             "llama-3.2-3b-preview",
             "llama-3.2-1b-preview",
             "mixtral-8x7b-32768",
@@ -124,13 +123,18 @@ if client:
                 active_model = candidate
                 break
         else:
-            if available_models:
-                active_model = available_models[0]
+            # Avoid whisper, vision, and guard models for chat
+            valid_chat = [m for m in available_models if not any(x in m.lower() for x in ["whisper", "guard", "vision", "embed"])]
+            if valid_chat:
+                active_model = valid_chat[0]
     except Exception as err:
-        st.sidebar.warning(f"Could not verify models list: {err}")
+        st.sidebar.warning(f"Could not load models list: {err}")
 
 with st.sidebar:
     st.caption(f"⚡ Active Engine: `{active_model}`")
+    if st.button("🗑️ Clear Chat History"):
+        st.session_state.messages = []
+        st.rerun()
 
 # --- Helper Utilities ---
 def execute_pure_math(expr: str) -> str:
@@ -153,7 +157,7 @@ def fetch_wiki(query: str) -> str:
     norm = re.sub(r"(?i)\b(who is the|who is|what is the|what is|\?)\b", "", norm).strip()
     try:
         url = f"https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch={urllib.parse.quote(norm)}&utf8=&format=json"
-        res = requests.get(url, headers={"User-Agent": "ORYN/1.0"}, timeout=3).json()
+        res = requests.get(url, headers={"User-Agent": "ORYN/1.0 (contact: support@oryn.ai)"}, timeout=3).json()
         hits = res.get("query", {}).get("search", [])
         if hits:
             return f"[{hits[0].get('title')}]: " + re.sub(r"<[^>]+>", "", hits[0].get("snippet", ""))
@@ -189,13 +193,15 @@ with st.expander("📎 Attach Document (PDF)", expanded=False):
 
 # --- Render Chat History ---
 for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
+    if msg.get("content"):
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
 
 # --- User Input & Router ---
 user_input = st.chat_input("Ask ORYN...")
 
 if user_input:
+    # 1. Render user message
     st.session_state.messages.append({"role": "user", "content": user_input})
     with st.chat_message("user"):
         st.markdown(user_input)
@@ -203,41 +209,51 @@ if user_input:
     response = ""
     t_lower = user_input.lower()
 
-    if not client:
-        response = "Please enter a valid Groq API key to activate ORYN.AI."
-    elif pdf_text:
-        prompt = f"Document Excerpt:\n{pdf_text}\n\nQuestion: {user_input}\nAnswer clearly based on the document."
-        try:
-            res = client.chat.completions.create(model=active_model, messages=[{"role": "user", "content": prompt}], max_tokens=350)
-            response = res.choices[0].message.content
-        except Exception as err:
-            response = f"Groq Error: {err}"
-    elif is_pure_math(user_input):
-        response = f"`{user_input} = {execute_pure_math(user_input)}`"
-    elif any(sig in t_lower for sig in ["speed", "distance", "ratio", "compounded", "compound interest", "profit", "loss", "discount", "upstream", "downstream", "work in"]):
-        code_prompt = f"Write ONLY a Python script inside ```python ... ``` that prints a step-by-step solution and final answer for: {user_input}"
-        try:
-            code_res = client.chat.completions.create(model=active_model, messages=[{"role": "user", "content": code_prompt}], max_tokens=450)
-            raw_code = code_res.choices[0].message.content
-            match = re.search(r"```(?:python)?\s*(.*?)\s*```", raw_code, re.DOTALL)
-            if match:
-                exec_out = execute_code_solution(match.group(1))
-                response = exec_out if exec_out and not exec_out.startswith("EXEC_ERROR:") else raw_code
-            else:
-                response = raw_code
-        except Exception as err:
-            response = f"Groq Error: {err}"
-    else:
-        wiki_ctx = fetch_wiki(user_input)
-        sys_msg = "You are ORYN.AI. Answer naturally in 2-3 sentences."
-        user_msg = f"Context: {wiki_ctx}\n\nQuestion: {user_input}" if wiki_ctx else user_input
-        conv = [{"role": "system", "content": sys_msg}] + st.session_state.messages[-4:] + [{"role": "user", "content": user_msg}]
-        try:
-            res = client.chat.completions.create(model=active_model, messages=conv, max_tokens=300)
-            response = res.choices[0].message.content
-        except Exception as err:
-            response = f"Groq Error: {err}"
+    # 2. Build history excluding current input to prevent duplicate user turns
+    history = []
+    for m in st.session_state.messages[:-1]:
+        if m.get("content"):
+            history.append({"role": m["role"], "content": m["content"]})
+    history = history[-4:]
 
     with st.chat_message("assistant"):
+        with st.spinner("ORYN is thinking..."):
+            if not client:
+                response = "Please enter a valid Groq API key to activate ORYN.AI."
+            elif pdf_text:
+                prompt = f"Document Excerpt:\n{pdf_text}\n\nQuestion: {user_input}\nAnswer clearly based on the document."
+                try:
+                    res = client.chat.completions.create(model=active_model, messages=[{"role": "user", "content": prompt}], max_tokens=600)
+                    msg_obj = res.choices[0].message
+                    response = msg_obj.content or getattr(msg_obj, "reasoning", "") or "No text generated."
+                except Exception as err:
+                    response = f"Groq Error: {err}"
+            elif is_pure_math(user_input):
+                response = f"`{user_input} = {execute_pure_math(user_input)}`"
+            elif any(sig in t_lower for sig in ["speed", "distance", "ratio", "compounded", "compound interest", "profit", "loss", "discount", "upstream", "downstream", "work in"]):
+                code_prompt = f"Write ONLY a Python script inside ```python ... ``` that prints a step-by-step solution and final answer for: {user_input}"
+                try:
+                    code_res = client.chat.completions.create(model=active_model, messages=[{"role": "user", "content": code_prompt}], max_tokens=650)
+                    raw_code = code_res.choices[0].message.content or ""
+                    match = re.search(r"```(?:python)?\s*(.*?)\s*```", raw_code, re.DOTALL)
+                    if match:
+                        exec_out = execute_code_solution(match.group(1))
+                        response = exec_out if exec_out and not exec_out.startswith("EXEC_ERROR:") else raw_code
+                    else:
+                        response = raw_code
+                except Exception as err:
+                    response = f"Groq Error: {err}"
+            else:
+                wiki_ctx = fetch_wiki(user_input)
+                sys_msg = "You are ORYN.AI. Answer naturally in 2-3 sentences."
+                user_msg = f"Context: {wiki_ctx}\n\nQuestion: {user_input}" if wiki_ctx else user_input
+                conv = [{"role": "system", "content": sys_msg}] + history + [{"role": "user", "content": user_msg}]
+                try:
+                    res = client.chat.completions.create(model=active_model, messages=conv, max_tokens=600)
+                    msg_obj = res.choices[0].message
+                    response = msg_obj.content or getattr(msg_obj, "reasoning", "") or "No answer returned."
+                except Exception as err:
+                    response = f"Groq Error: {err}"
+
         st.markdown(response)
-    st.session_state.messages.append({"role": "assistant", "content": response})
+        st.session_state.messages.append({"role": "assistant", "content": response})
